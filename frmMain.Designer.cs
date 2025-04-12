@@ -129,7 +129,7 @@
             this.label2.Name = "label2";
             this.label2.Size = new System.Drawing.Size(813, 18);
             this.label2.TabIndex = 6;
-            this.label2.Text = "Open YouTube tab in Google Chrome first (don\'t minimize the window or make it ful" +
+            this.label2.Text = "Open YouTube or playlist shuffle tab in Google Chrome first (don\'t minimize the window or make it ful" +
     "l screen) and select Chrome tab below.";
             // 
             // pictureBox1
@@ -187,7 +187,7 @@
             this.MaximizeBox = false;
             this.Name = "frmMain";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
-            this.Text = "YouTube Title For Yvonne v10 by Shane 2023-08-17";
+            this.Text = "YouTube Title for Mortdog";
             this.Load += new System.EventHandler(this.frmMain_Load);
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).EndInit();
             this.ResumeLayout(false);
