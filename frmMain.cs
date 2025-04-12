@@ -395,7 +395,7 @@ It is OK to minimize or make the Chrome window full screen after this step is co
                 return;
             }
 
-            bool foundYoutubeTabInWindow = false;
+            bool foundRelevantTabInWindow = false;
             string newTabStringToFind = newTabString[chromeLanguage].ToUpper();
 
             // Loop through all child elements of the Chrome window
@@ -406,8 +406,6 @@ It is OK to minimize or make the Chrome window full screen after this step is co
 
                 // If the element's name is "New Tab" (this is the name of [+] button at the end of the tab strip)
                 // then we've found a child element of the tab strip.
-                // Normally we expect to only find one of these per Chrome Window, however, a user-created blank tab will also
-                // be named "New Tab" - we also accept this, as it still helps us find the Chrome window's tab strip.
                 if (element.CurrentName != null && element.CurrentName.ToUpper() == newTabStringToFind)
                 {
                     // Get the parent element, this will be the tab strip.
@@ -432,17 +430,17 @@ It is OK to minimize or make the Chrome window full screen after this step is co
                         // Get name of the element
                         string tabName = tabItem.CurrentName;
 
-                        // If we found a tab with a YouTube video, then add it to our list of Chrome windows
-                        // which have a YouTube tab.
-                        if (tabName.Contains("YouTube"))
+                        // If we found a tab with a YouTube video or Playlist Shuffle, then add it to our list of Chrome windows
+                        // which have relevant tabs.
+                        if (tabName.Contains("YouTube") || tabName.Contains("Playlist Shuffle"))
                         {
                             youtubeWindows.Add(new YoutubeWindow { TabName = tabItem.CurrentName, elemTabStrip = elemTabStrip, Hwnd = hwnd, elemTab = tabItem });
-                            foundYoutubeTabInWindow = true;
+                            foundRelevantTabInWindow = true;
                         }
                     }
                 }
 
-                if (foundYoutubeTabInWindow)
+                if (foundRelevantTabInWindow)
                 {
                     break;
                 }
@@ -508,37 +506,8 @@ It is OK to minimize or make the Chrome window full screen after this step is co
             new Regex(@"[\([［「【『]+\s*Lyric[\)\]］」】』]+", RegexOptions.Compiled | RegexOptions.IgnoreCase),
             new Regex(@"[\|\-]+\s*$", RegexOptions.Compiled),
             new Regex(@"^\s*[\|\-]+", RegexOptions.Compiled),
-
-            /*
-            new Regex(@"\(Official Video\)", RegexOptions.Compiled | RegexOptions.IgnoreCase),
-            new Regex(@"\(Official Music Video\)", RegexOptions.Compiled | RegexOptions.IgnoreCase),
-            new Regex(@"\(Official Lyrics Video\)", RegexOptions.Compiled | RegexOptions.IgnoreCase),
-            new Regex(@"\(Official Lyric Video\)", RegexOptions.Compiled | RegexOptions.IgnoreCase),
-            new Regex(@"\[Official Video\]", RegexOptions.Compiled | RegexOptions.IgnoreCase),
-            new Regex(@"\[Official Music Video\]", RegexOptions.Compiled | RegexOptions.IgnoreCase),
-            new Regex(@"\[Official Lyrics Video\]", RegexOptions.Compiled | RegexOptions.IgnoreCase),
-            new Regex(@"\[Official Lyric Video\]", RegexOptions.Compiled | RegexOptions.IgnoreCase),
-            new Regex(@"［OFFICIAL VIDEO］", RegexOptions.Compiled | RegexOptions.IgnoreCase),
-            new Regex(@"［OFFICIAL MUSIC VIDEO］", RegexOptions.Compiled | RegexOptions.IgnoreCase),
-            new Regex(@"［OFFICIAL LYRICS VIDEO］", RegexOptions.Compiled | RegexOptions.IgnoreCase),
-            new Regex(@"［OFFICIAL LYRIC VIDEO］", RegexOptions.Compiled | RegexOptions.IgnoreCase),
-            new Regex(@"「OFFICIAL VIDEO」", RegexOptions.Compiled | RegexOptions.IgnoreCase),
-            new Regex(@"「OFFICIAL MUSIC VIDEO」", RegexOptions.Compiled | RegexOptions.IgnoreCase),
-            new Regex(@"「OFFICIAL LYRICS VIDEO」", RegexOptions.Compiled | RegexOptions.IgnoreCase),
-            new Regex(@"「OFFICIAL LYRIC VIDEO」", RegexOptions.Compiled | RegexOptions.IgnoreCase),
-            new Regex(@"【OFFICIAL VIDEO】", RegexOptions.Compiled | RegexOptions.IgnoreCase),
-            new Regex(@"【OFFICIAL MUSIC VIDEO】", RegexOptions.Compiled | RegexOptions.IgnoreCase),
-            new Regex(@"【OFFICIAL LYRICS VIDEO】", RegexOptions.Compiled | RegexOptions.IgnoreCase),
-            new Regex(@"【OFFICIAL LYRIC VIDEO】", RegexOptions.Compiled | RegexOptions.IgnoreCase),
-            new Regex(@"『OFFICIAL VIDEO』", RegexOptions.Compiled | RegexOptions.IgnoreCase),
-            new Regex(@"『OFFICIAL MUSIC VIDEO』", RegexOptions.Compiled | RegexOptions.IgnoreCase),
-            new Regex(@"『OFFICIAL LYRICS VIDEO』", RegexOptions.Compiled | RegexOptions.IgnoreCase),
-            new Regex(@"『OFFICIAL LYRIC VIDEO』", RegexOptions.Compiled | RegexOptions.IgnoreCase),
-            new Regex(@"Official Video", RegexOptions.Compiled | RegexOptions.IgnoreCase),
-            new Regex(@"Official Music Video", RegexOptions.Compiled | RegexOptions.IgnoreCase),
-            new Regex(@"Official Lyrics Video", RegexOptions.Compiled | RegexOptions.IgnoreCase),
-            new Regex(@"Official Lyric Video", RegexOptions.Compiled | RegexOptions.IgnoreCase),
-            */
+            new Regex(@"^\s*\d{1,3}%\s+", RegexOptions.Compiled | RegexOptions.IgnoreCase), // Removes text starting with a percentage (0% to 100%) followed by a space
+            new Regex(@"\s*-\s*Playlist Shuffle\s*$", RegexOptions.Compiled | RegexOptions.IgnoreCase), // Removes " - Playlist Shuffle" at the end of the text
         };
 
         static Regex doubleSpaceRegex = new Regex(@"\s+", RegexOptions.Compiled);
