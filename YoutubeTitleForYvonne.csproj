@@ -7,7 +7,7 @@
     <ProjectGuid>{3FC6DEA6-7EF2-4900-AE1F-368DE3F3A54B}</ProjectGuid>
     <OutputType>WinExe</OutputType>
     <RootNamespace>YoutubeTitleForYvonne</RootNamespace>
-    <AssemblyName>YoutubeTitleforMortdog</AssemblyName>
+    <AssemblyName>YoutubeTitle</AssemblyName>
     <TargetFrameworkVersion>v4.6.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <Deterministic>true</Deterministic>

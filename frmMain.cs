@@ -17,6 +17,9 @@ namespace YoutubeTitleForYvonne
         [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Auto)]
         static extern int GetClassName(IntPtr hWnd, StringBuilder lpClassName, int nMaxCount);
 
+        [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Auto)]
+        static extern int GetWindowText(IntPtr hWnd, StringBuilder lpString, int nMaxCount);
+
         [DllImport("user32.dll", SetLastError = true)]
         static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
 
@@ -77,7 +80,7 @@ namespace YoutubeTitleForYvonne
         int minimumTextLength { get; set; }
 
         public const string DefaultChromeLanguage = "English";
-        public const int DefaultRefreshInterval = 5;
+        public const int DefaultRefreshInterval = 2;
         public const string DefaultTextSeparatorType = "None";
         public const string DefaultTextSeparator = " ~ ";
         public const int DefaultMinimumTextLength = 40;
@@ -451,7 +454,7 @@ It is OK to minimize or make the Chrome window full screen after this step is co
         {
             string name = elemTab.CurrentName;
 
-            if (!string.IsNullOrEmpty(name) && name.IndexOf(" - YouTube") != -1)
+            if (!string.IsNullOrEmpty(name))
             {
                 return CleanYoutubeTitle(name);
             }
@@ -506,8 +509,10 @@ It is OK to minimize or make the Chrome window full screen after this step is co
             new Regex(@"[\([［「【『]+\s*Lyric[\)\]］」】』]+", RegexOptions.Compiled | RegexOptions.IgnoreCase),
             new Regex(@"[\|\-]+\s*$", RegexOptions.Compiled),
             new Regex(@"^\s*[\|\-]+", RegexOptions.Compiled),
-            new Regex(@"^\s*\d{1,3}%\s+", RegexOptions.Compiled | RegexOptions.IgnoreCase), // Removes text starting with a percentage (0% to 100%) followed by a space
-            new Regex(@"\s*-\s*Playlist Shuffle\s*$", RegexOptions.Compiled | RegexOptions.IgnoreCase), // Removes " - Playlist Shuffle" at the end of the text
+            new Regex(@"\s*-\s*YouTube Music\s*", RegexOptions.Compiled | RegexOptions.IgnoreCase), // Removes " - YouTube Music" anywhere in the text
+            new Regex(@"^\s*\d{1,3}%\s*", RegexOptions.Compiled | RegexOptions.IgnoreCase),
+            new Regex(@"\s*-\s*Playlist Shuffle\s*", RegexOptions.Compiled | RegexOptions.IgnoreCase),
+            new Regex(@"\s*-\s*Google Chrome\s*", RegexOptions.Compiled | RegexOptions.IgnoreCase),
         };
 
         static Regex doubleSpaceRegex = new Regex(@"\s+", RegexOptions.Compiled);
@@ -640,85 +645,66 @@ It is OK to minimize/full screen the Chrome window after this step is completed.
             {
                 ThreadHelperClass.SetVisible(this, progressBar, true);
 
-                string updatedTabName = GetUpdatedChromeTabTitleFromWindow(selectedYoutubeWindow.Hwnd);
+                // Get the name of the targeted Chrome window (reflects the currently active tab name)
+                string windowName = GetWindowNameFromHandle(selectedYoutubeWindow.Hwnd);
 
                 if (ThreadHelperClass.GetText(this, btnStartStop) == "3. Stop monitoring tab title")
                 {
-                    if (string.IsNullOrEmpty(updatedTabName))
+                    // Check if the window name contains "YouTube" or "Playlist Shuffle" (case-insensitive)
+                    if (string.IsNullOrEmpty(windowName) || 
+                        (windowName.IndexOf("YouTube", StringComparison.OrdinalIgnoreCase) < 0 && 
+                         windowName.IndexOf("Playlist Shuffle", StringComparison.OrdinalIgnoreCase) < 0))
                     {
-                        if (selectedYoutubeWindow.elemTab.CurrentName == "YouTube")
-                        {
-                            ThreadHelperClass.SetText(this, lblCurrentlyPlaying, "No video is playing.");
-                        }
-                        else
-                        {
-                            ThreadHelperClass.SetText(this, lblCurrentlyPlaying, "Could not get YouTube title. Is selected window/tab closed? Try starting again from button #1.");
-                        }
-
-                        try
-                        {
-                            if (!debug)
-                            {
-                                System.IO.File.WriteAllText(outputFileName, "");
-                            }
-                            else
-                            {
-                                System.IO.File.AppendAllText(outputFileName, DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + ": " + Environment.NewLine);
-                            }
-                        }
-                        catch
-                        {
-                            ThreadHelperClass.SetText(this, lblCurrentlyPlaying, "Error: Output file is not writeable. Please change output filename under options.");
-                        }
-                        
-                        
+                        // If the window name does not meet the conditions, write an empty string
+                        ThreadHelperClass.SetText(this, lblCurrentlyPlaying, "No valid tab is active.");
+                        System.IO.File.WriteAllText(outputFileName, "");
                         lastPlayingTitle = null;
                     }
-                    else if (lastPlayingTitle != updatedTabName || ThreadHelperClass.GetText(this, lblCurrentlyPlaying) == "Starting...")
+                    else
                     {
-                        lastPlayingTitle = updatedTabName;
-                        ThreadHelperClass.SetText(this, lblCurrentlyPlaying, updatedTabName);
+                        // Clean the window name using the regex filters
+                        string cleanedTitle = CleanYoutubeTitle(windowName);
 
-                        try
+                        if (lastPlayingTitle != cleanedTitle || ThreadHelperClass.GetText(this, lblCurrentlyPlaying) == "Starting...")
                         {
-                            string textFileContent;
+                            // If the cleaned title meets the conditions, write it to the file
+                            lastPlayingTitle = cleanedTitle;
+                            ThreadHelperClass.SetText(this, lblCurrentlyPlaying, cleanedTitle);
 
-                            // If using space padding...
-                            if (textSeparatorType == "Space Padding")
+                            try
                             {
-                                // Pad end of string with spaces if text length is below minimum,
-                                // otherwise just add a single space as a separator.
-                                if (updatedTabName.Length < minimumTextLength)
+                                string textFileContent;
+
+                                // If using space padding...
+                                if (textSeparatorType == "Space Padding")
                                 {
-                                    textFileContent = updatedTabName.PadRight(minimumTextLength, ' ');
+                                    // Pad end of string with spaces if text length is below minimum,
+                                    // otherwise just add a single space as a separator.
+                                    if (cleanedTitle.Length < minimumTextLength)
+                                    {
+                                        textFileContent = cleanedTitle.PadRight(minimumTextLength, ' ');
+                                    }
+                                    else
+                                    {
+                                        textFileContent = cleanedTitle + " ";
+                                    }
+                                }
+                                else if (textSeparatorType == "Custom")
+                                {
+                                    textFileContent = cleanedTitle + textSeparator;
                                 }
                                 else
                                 {
-                                    textFileContent = updatedTabName + " ";
+                                    textFileContent = cleanedTitle + " ";
                                 }
-                            }
-                            else if (textSeparatorType == "Custom")
-                            {
-                                textFileContent = updatedTabName + textSeparator;
-                            }
-                            else
-                            {
-                                textFileContent = updatedTabName + " ";
-                            }
 
-                            if (!debug)
-                            {
                                 System.IO.File.WriteAllText(outputFileName, textFileContent);
                             }
-                            else
+                            catch
                             {
-                                System.IO.File.AppendAllText(outputFileName, DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + ": " + textFileContent + Environment.NewLine);
+                                ThreadHelperClass.SetText(this, lblCurrentlyPlaying, "Error: Output file is not writeable. Please change output filename under options.");
+                                lastPlayingTitle = null;
                             }
-                        }
-                        catch
-                        {
-                            ThreadHelperClass.SetText(this, lblCurrentlyPlaying, "Error: Output file is not writeable. Please change output filename under options.");
-                            lastPlayingTitle = null;
                         }
                     }
                 }
@@ -729,17 +715,8 @@ It is OK to minimize/full screen the Chrome window after this step is completed.
             }
             catch when (!debug)
             {
-                ThreadHelperClass.SetText(this, lblCurrentlyPlaying, "Could not get YouTube title. Is selected window/tab closed? Try starting again from button #1.");
-
-                if (!debug)
-                {
-                    System.IO.File.WriteAllText(outputFileName, "");
-                }
-                else
-                {
-                    System.IO.File.AppendAllText(outputFileName, DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + ": " + Environment.NewLine);
-                }
-                    
+                ThreadHelperClass.SetText(this, lblCurrentlyPlaying, "Could not get Chrome window name. Is the selected window/tab closed? Try starting again from button #1.");
+                System.IO.File.WriteAllText(outputFileName, "");
                 lastPlayingTitle = null;
             }
         }
@@ -929,6 +906,19 @@ It is OK to minimize/full screen the Chrome window after this step is completed.
                     ConfigurationManager.RefreshSection("appSettings");
                 }
             }
+        }
+
+        // Helper method to get the name of the Chrome window
+        private string GetWindowNameFromHandle(IntPtr hwnd)
+        {
+            if (hwnd == IntPtr.Zero)
+            {
+                return null;
+            }
+
+            StringBuilder windowText = new StringBuilder(256);
+            GetWindowText(hwnd, windowText, windowText.Capacity);
+            return windowText.ToString();
         }
     }
 }

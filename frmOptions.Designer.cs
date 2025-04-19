@@ -155,7 +155,7 @@
             this.lnklblProjectUrl.Size = new System.Drawing.Size(359, 18);
             this.lnklblProjectUrl.TabIndex = 7;
             this.lnklblProjectUrl.TabStop = true;
-            this.lnklblProjectUrl.Text = "https://github.com/Reikooters/YoutubeTitleForYvonne";
+            this.lnklblProjectUrl.Text = "https://github.com/NicoleKCat/YoutubeTitleForYvonne";
             this.lnklblProjectUrl.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.lnklblProjectUrl_LinkClicked);
             // 
             // label3
